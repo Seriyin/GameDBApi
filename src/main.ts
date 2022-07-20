@@ -27,6 +27,7 @@ interface AltName {
 }
 
 interface LoopControl {
+    credentials: ClientCredentials,
     auth_info: AuthTokenData,
     start_time: number,
     loop_time: number,
@@ -58,6 +59,7 @@ console.debug(auth_response.data)
 
 const start = Date.now()
 const loop_control: LoopControl = {
+    credentials: credentials,
     auth_info: auth_response.data,
     start_time: start,
     loop_time: start,
@@ -68,7 +70,7 @@ const loop_control: LoopControl = {
     loop_fn: async function(loop_control: LoopControl) {
         while(loop_control.shouldContinue) {
             for(const promise of Array(4).fill(undefined).map(() => {
-                const promise = fireGameRequest(loop_control.rate, loop_control.offset)
+                const promise = fireGameRequest(loop_control.credentials, loop_control.rate, loop_control.offset)
                 loop_control.offset += loop_control.rate
                 return promise
             })) {
@@ -175,14 +177,14 @@ async function fireAuthRequest(credentials: ClientCredentials): Promise<axios.Re
     }
 )};
 
-async function fireGameRequest(limit: number, offset: number): Promise<axios.Response<GameInfo[]>> {
+async function fireGameRequest(credentials: ClientCredentials, limit: number, offset: number): Promise<axios.Response<GameInfo[]>> {
     return redaxios.post(
         "https://api.igdb.com/v4/games",
         `fields name, alternative_names.name; where name = "M"*; limit ${limit}; offset ${offset};`,
         {
             headers: {
                 'Accept': 'application/json',
-                'Client-ID': 'e9j16khituyyxn5xfrk4tlzf5ixhl5',
+                'Client-ID': credentials.client_id,
                 'Authorization': `Bearer ${auth_response.data.access_token}`,
             }
         },
