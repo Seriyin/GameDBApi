@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "esnext",
+    "target": "esnext",
+    "declaration": true,
+    "importHelpers": true,
+    "composite": true,
+    "declarationMap": true,
+    "checkJs": true,
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "paths": {
+      "*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}
