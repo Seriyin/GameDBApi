@@ -1,0 +1,6 @@
+{
+    "imports": {
+        "dotenv": "https://deno.land/std@0.149.0/dotenv/mod.ts",
+        "redaxios": "https://esm.sh/redaxios@0.5.0"
+    }
+}

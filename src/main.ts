@@ -1,5 +1,4 @@
-import { time } from 'console';
-import { exit } from 'process';
+import { config, DotenvConfig } from 'dotenv';
 import * as axios from 'redaxios';
 
 const redaxios = axios.default
@@ -47,7 +46,7 @@ class LoopControl implements ILoopControl {
     rate: number;
     offset: number;
     
-    constructor(credentials: ClientCredentials, auth_info: AuthTokenData) {
+    constructor(credentials: ClientCredentials, auth_info: AuthTokenData, env: DotenvConfig) {
         this.credentials = credentials
         this.auth_info = auth_info
         const start = Date.now()
@@ -55,7 +54,7 @@ class LoopControl implements ILoopControl {
         this.loop_time = start
         this.accumulate = []
         this.shouldContinue = true
-        this.rate = Number.parseInt(process.env.API_RATE) ?? 10
+        this.rate = Number.parseInt(env['API_RATE'] ?? 10)
         this.offset = 0
     }
 
@@ -85,7 +84,7 @@ class LoopControl implements ILoopControl {
         
                 if (!check_auth_response(auth_response)) {
                     console.debug(auth_response)
-                    exit(-1);
+                    Deno.exit(-1);
                 }
     
                 loop_control.start_time = Date.now()
@@ -106,24 +105,30 @@ class LoopControl implements ILoopControl {
 }
 
 
+const env: DotenvConfig = await config({
+    export: false,
+    safe: false,
+    defaults: undefined
+})
 
+console.log(env)
 
 const credentials: ClientCredentials = {
-    client_id: process.env.CLIENT_ID ?? '',
-    client_secret: process.env.CLIENT_SECRET ?? ''
+    client_id: env['CLIENT_ID'] ?? '',
+    client_secret: env['CLIENT_SECRET'] ?? ''
 }
 
 const auth_response = await fire_auth_request(credentials)
 
 if (!check_auth_response(auth_response)) {
     console.debug(auth_response)
-    exit(-1);
+    Deno.exit(-1);
 }
 
 console.debug(auth_response.data)
 
 
-const loop_control = new LoopControl(credentials, auth_response.data)
+const loop_control = new LoopControl(credentials, auth_response.data, env)
 
 await loop_control.loop_fn()
 console.debug(loop_control.accumulate.join())
@@ -147,7 +152,7 @@ if(Array.isArray(game_response.data)) {
 
 
 
-async function delay(millis: number): Promise<void> {
+function delay(millis: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
 
@@ -163,7 +168,7 @@ function check_game_response(game_response: axios.Response<GameInfo[]>): boolean
     return check_success_code(game_response) && game_response.data.length !== 0
 }
 
-function log_game_response_data(val: GameInfo) {
+function _log_game_response_data(val: GameInfo) {
     console.debug(`Name: ${val.name}`);
     if(Array.isArray(val.alternative_names)) {
         val.alternative_names?.forEach((val, i) => console.debug(`Alt ${i}: ${val.name}`))
@@ -171,7 +176,7 @@ function log_game_response_data(val: GameInfo) {
 }
 
 
-async function fire_auth_request(credentials: ClientCredentials): Promise<axios.Response<AuthTokenData>> {
+function fire_auth_request(credentials: ClientCredentials): Promise<axios.Response<AuthTokenData>> {
     return redaxios.post(
     'https://id.twitch.tv/oauth2/token',
     '',
@@ -185,9 +190,9 @@ async function fire_auth_request(credentials: ClientCredentials): Promise<axios.
             'Content-Type': 'application/x-www-form-urlencoded'
         }
     }
-)};
+)}
 
-async function fire_game_request(credentials: ClientCredentials, limit: number, offset: number): Promise<axios.Response<GameInfo[]>> {
+function fire_game_request(credentials: ClientCredentials, limit: number, offset: number): Promise<axios.Response<GameInfo[]>> {
     return redaxios.post(
         "https://api.igdb.com/v4/games",
         `fields name, alternative_names.name; where name = "M"*; limit ${limit}; offset ${offset};`,
